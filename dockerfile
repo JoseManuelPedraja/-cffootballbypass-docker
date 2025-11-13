@@ -1,10 +1,6 @@
-FROM php:8.4-cli-alpine AS base
+FROM php:8.4-cli-alpine
 
-RUN apk add --no-cache \
-    curl \
-    jq \
-    bash \
-    && rm -rf /var/cache/apk/*
+RUN apk add --no-cache curl jq bash && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
@@ -22,8 +18,8 @@ USER appuser
 ENV FEED_URL="https://hayahora.futbol/estado/data.json"
 ENV DOMAINS="[]"
 ENV INTERVAL_SECONDS=300
-ENV CF_API_TOKEN_FILE="/run/secrets/cf_api_token"
-ENV CF_ZONE_ID_FILE="/run/secrets/cf_zone_id"
+ENV CF_API_TOKEN=""
+ENV CF_ZONE_ID=""
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f https://hayahora.futbol/estado/data.json || exit 1

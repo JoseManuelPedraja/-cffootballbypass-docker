@@ -8,7 +8,7 @@ $zoneId = $argv[6];
 
 $endpoint = "https://api.cloudflare.com/client/v4/zones/$zoneId/dns_records";
 
-if ($record === "@" || $record === $domain || empty($record)) {
+if ($record === "@" || empty($record)) {
     $fullname = $domain;
 } else {
     $fullname = "$record.$domain";
@@ -39,7 +39,7 @@ if (isset($result['result'][0])) {
     $currentProxied = $result['result'][0]['proxied'];
 
     if ($currentProxied === $proxy) {
-        echo "ℹ️  Registro $fullname ya está en el estado deseado (proxied=$proxy)\n";
+        echo "ℹ️ Registro $fullname ya está en el estado deseado (proxied=$proxy)\n";
         exit(0);
     }
 
