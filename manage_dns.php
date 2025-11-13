@@ -8,8 +8,11 @@ $zoneId = $argv[6];
 
 $endpoint = "https://api.cloudflare.com/client/v4/zones/$zoneId/dns_records";
 
+// Nombre completo
+$fullname = ($record === "@" || empty($record)) ? $domain : "$record.$domain";
+
 // Obtener registro DNS
-$ch = curl_init("$endpoint?name=$record.$domain&type=$type");
+$ch = curl_init("$endpoint?name=$fullname&type=$type");
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "Authorization: Bearer $apiToken",
     "Content-Type: application/json"
@@ -22,10 +25,12 @@ $result = json_decode($response, true);
 
 if (isset($result['result'][0])) {
     $recordId = $result['result'][0]['id'];
+    $content = $result['result'][0]['content'];
+
     $payload = json_encode([
         "type" => $type,
-        "name" => $record,
-        "content" => $result['result'][0]['content'],
+        "name" => $fullname,
+        "content" => $content,
         "proxied" => $proxy
     ]);
 
@@ -40,7 +45,7 @@ if (isset($result['result'][0])) {
     $resp = curl_exec($ch);
     curl_close($ch);
 
-    echo "Registro $record.$domain actualizado (proxied=$proxy)\n";
+    echo "Registro $fullname actualizado (proxied=$proxy)\n";
 } else {
-    echo "Registro $record.$domain no encontrado\n";
+    echo "Registro $fullname no encontrado\n";
 }
