@@ -35,8 +35,8 @@ while true; do
         RECORD=$(echo "$DOMAIN_OBJ" | jq -r '.record')
         TYPE=$(echo "$DOMAIN_OBJ" | jq -r '.type')
 
-        # Ejecutar script PHP para actualizar Cloudflare
-        php /app/update_dns.php "$DOMAIN" "$RECORD" "$TYPE" "$PROXIED" "$CF_API_TOKEN" "$CF_ZONE_ID"
+        # CORREGIDO: Llamar al archivo correcto
+        php /app/manage_dns.php "$DOMAIN" "$RECORD" "$TYPE" "$PROXIED" "$CF_API_TOKEN" "$CF_ZONE_ID"
     done
 
     echo "[$(date)] Esperando $INTERVAL segundos antes de volver a comprobar..."
