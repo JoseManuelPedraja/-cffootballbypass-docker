@@ -1,21 +1,29 @@
-version: '3.9'
+version: "3.9"
 
 services:
   cf-bypass:
-    build: .
+    image: harlekesp/cf-football-bypass:latest
     container_name: cf-football-bypass
     restart: always
     environment:
-      DOMAINS: '[{"name":"tudominio.com","record":"www","type":"A"}]'
+      DOMAINS: '[{"name":"casa-carreras.es","record":"@","type":"A"}]'
       INTERVAL_SECONDS: 300
     secrets:
       - cf_api_token
       - cf_zone_id
     volumes:
-      - ./logs:/app/logs
+      - cflogs:/app/logs
+    networks:
+      - private_network
 
 secrets:
   cf_api_token:
-    file: ./secrets/cf_api_token.txt
+    file: ./cf_api_token.txt
   cf_zone_id:
-    file: ./secrets/cf_zone_id.txt
+    file: ./cf_zone_id.txt
+
+volumes:
+  cflogs:
+
+networks:
+  private_network:
