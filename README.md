@@ -57,7 +57,7 @@ version: "3.9"
 
 services:
   cf-bypass:
-    image: harlekesp/cf-football-bypass:latest
+    image: harlekesp/cffootballbypass:latest
     container_name: cf-football-bypass
     restart: always
     environment:
@@ -81,4 +81,5 @@ volumes:
   cflogs:
 
 networks:
+
   private_network:
