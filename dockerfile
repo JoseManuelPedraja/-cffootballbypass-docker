@@ -1,6 +1,6 @@
 FROM php:8.4-cli-alpine
 
-RUN apk add --no-cache curl jq bash && rm -rf /var/cache/apk/*
+RUN apk add --no-cache curl jq bash bind-tools && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
