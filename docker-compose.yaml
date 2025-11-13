@@ -1,0 +1,21 @@
+version: '3.9'
+
+services:
+  cf-bypass:
+    build: .
+    container_name: cf-football-bypass
+    restart: always
+    environment:
+      DOMAINS: '[{"name":"tudominio.com","record":"www","type":"A"}]'
+      INTERVAL_SECONDS: 300
+    secrets:
+      - cf_api_token
+      - cf_zone_id
+    volumes:
+      - ./logs:/app/logs
+
+secrets:
+  cf_api_token:
+    file: ./secrets/cf_api_token.txt
+  cf_zone_id:
+    file: ./secrets/cf_zone_id.txt
