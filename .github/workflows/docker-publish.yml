@@ -8,7 +8,6 @@ on:
       - '**.md'
       - 'LICENSE'
       - '.gitignore'
-      - '.github'
   workflow_dispatch:
 
 env:
@@ -52,9 +51,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64,linux/arm64
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+          # Disable provenance to reduce build time and size
+          provenance: false
 
       - name: 📝 Update Docker Hub description
         uses: peter-evans/dockerhub-description@v4
