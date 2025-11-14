@@ -4,7 +4,7 @@
 
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://hub.docker.com/r/harlekesp/cffootballbypass)
 [![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/license-GNU-blue.svg?style=for-the-badge)](LICENSE)
 [![Security Scan](https://img.shields.io/badge/security-scanned-success?style=for-the-badge)](https://github.com/harlekesp/cffootballbypass/security)
 
 **Automatically bypass Spanish football broadcast blocks by intelligently toggling Cloudflare proxy** ⚡
@@ -555,5 +555,6 @@ Users are responsible for compliance with all applicable laws in their jurisdict
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-harlekesp-0db7ed?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/harlekesp/cffootballbypass)
 
 [⬆ Back to top](#-cf-football-bypass)
+
 
 </div>
