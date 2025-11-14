@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "===== Iniciando CF Football Bypass INTELIGENTE ====="
+echo "===== Iniciando CF Football Bypass ====="
 
 DOMAINS_JSON=${DOMAINS}
 INTERVAL=${INTERVAL_SECONDS:-300}

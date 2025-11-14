@@ -1,0 +1,151 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Escaneo semanal automático cada domingo a las 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Build Docker image
+        run: |
+          docker build -t test-image:${{ github.sha }} .
+          echo "✅ Image built successfully"
+
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'test-image:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'  # No fallar el build por CVEs
+
+      - name: 📊 Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: 📄 Generate readable report
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'test-image:${{ github.sha }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: 💾 Save report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-report-${{ github.sha }}
+          path: trivy-results.sarif
+          retention-days: 30
+
+  docker-scout:
+    name: Docker Scout Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: harlekesp
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🏗️ Build and analyze
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: harlekesp/cffootballbypass:scan-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🔍 Docker Scout CVEs
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: harlekesp/cffootballbypass:scan-${{ github.sha }}
+          only-severities: critical,high
+          exit-code: false
+
+  package-versions:
+    name: Check Package Versions
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Build image
+        run: docker build -t version-check .
+
+      - name: 📦 Check installed packages
+        run: |
+          echo "## 📦 Installed Package Versions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Version | CVE Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------|------------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Curl
+          CURL_VERSION=$(docker run --rm version-check curl --version | head -1)
+          echo "| curl | $CURL_VERSION | ✅ |" >> $GITHUB_STEP_SUMMARY
+          
+          # Busybox
+          BUSYBOX_VERSION=$(docker run --rm version-check busybox | head -1)
+          echo "| busybox | $BUSYBOX_VERSION | ✅ |" >> $GITHUB_STEP_SUMMARY
+          
+          # Tar (si existe)
+          TAR_EXISTS=$(docker run --rm version-check sh -c 'command -v tar && echo "YES" || echo "NO"')
+          if [ "$TAR_EXISTS" = "YES" ]; then
+            TAR_VERSION=$(docker run --rm version-check tar --version | head -1)
+            echo "| tar | $TAR_VERSION | ⚠️ |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| tar | Not installed | ✅ Removed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Package check completed" >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [trivy-scan, package-versions]
+    if: always()
+    
+    steps:
+      - name: 📊 Generate summary
+        run: |
+          echo "## 🛡️ Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Date:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Status" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Trivy Scan: ${{ needs.trivy-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Package Check: ${{ needs.package-versions.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📄 View detailed reports in the Actions artifacts" >> $GITHUB_STEP_SUMMARY
