@@ -721,10 +721,7 @@ Contributions are welcome! You can help by:
 
 ## 📜 License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-```
-MIT License - Copyright (c) 2025 harlekesp
-```
+This project is licensed under the GNU GENERAL PUBLIC LICENSE. See [LICENSE](LICENSE) for details.
 
 ---
 
@@ -733,16 +730,6 @@ MIT License - Copyright (c) 2025 harlekesp
 - [hayahora.futbol](https://hayahora.futbol) for maintaining the public feed
 - The Docker and Cloudflare communities
 - All contributors and bug reporters
-
----
-
-## ⚠️ Disclaimer
-
-This project is a **DNS automation tool**.
-
-**It does not modify, intercept, or redistribute copyrighted content.**
-
-Users are responsible for compliance with all applicable laws in their jurisdiction.
 
 ---
 
@@ -757,3 +744,4 @@ Users are responsible for compliance with all applicable laws in their jurisdict
 
 
 </div>
+
