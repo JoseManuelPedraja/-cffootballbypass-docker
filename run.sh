@@ -1,12 +1,30 @@
 #!/bin/bash
 echo "===== Iniciando CF Football Bypass ====="
 
+# --- Soporte para Docker Secrets estándar con *_FILE ---
+if [[ -n "$CF_API_TOKEN_FILE" && -f "$CF_API_TOKEN_FILE" ]]; then
+    CF_API_TOKEN=$(cat "$CF_API_TOKEN_FILE")
+fi
+
+if [[ -n "$CF_ZONE_ID_FILE" && -f "$CF_ZONE_ID_FILE" ]]; then
+    CF_ZONE_ID=$(cat "$CF_ZONE_ID_FILE")
+fi
+
+# --- Soporte para ubicación personalizada que tú usas: /run/secrets/... ---
+if [ -f "/run/secrets/cf_api_token" ]; then
+    CF_API_TOKEN=$(cat /run/secrets/cf_api_token)
+fi
+
+if [ -f "/run/secrets/cf_zone_id" ]; then
+    CF_ZONE_ID=$(cat /run/secrets/cf_zone_id)
+fi
+# --- Fin soporte secrets ---
+
 DOMAINS_JSON=${DOMAINS}
 INTERVAL=${INTERVAL_SECONDS:-300}
-CF_API_TOKEN=${CF_API_TOKEN}
-CF_ZONE_ID=${CF_ZONE_ID}
 FEED_URL=${FEED_URL:-"https://hayahora.futbol/estado/data.json"}
 
+# Comprobación de variables
 if [ -z "$CF_API_TOKEN" ] || [ -z "$CF_ZONE_ID" ]; then
     echo "❌ Error: CF_API_TOKEN y CF_ZONE_ID deben estar configurados"
     exit 1
