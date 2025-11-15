@@ -750,9 +750,10 @@ Users are responsible for compliance with all applicable laws in their jurisdict
 
 **Made with ⚽ and ☕ in Spain**
 
-[![GitHub](https://img.shields.io/badge/GitHub-harlekesp-181717?style=flat-square&logo=github)](https://github.com/JoseManuelPedraja/cffootballbypass-docker)
+[![GitHub](https://img.shields.io/badge/GitHub-JoseManuelPedraja-181717?style=flat-square&logo=github)](https://github.com/JoseManuelPedraja/cffootballbypass-docker)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-harlekesp-0db7ed?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/harlekesp/cffootballbypass)
 
 [⬆ Back to top](#-cf-football-bypass)
+
 
 </div>
