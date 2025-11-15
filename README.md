@@ -88,7 +88,6 @@ Alpine-based image (~50MB)
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 ```bash
 ✅ Docker 20.10+
 ✅ Docker Compose v2+
@@ -105,6 +104,7 @@ Alpine-based image (~50MB)
 
 ### 🐳 Step 2: Create `docker-compose.yml`
 
+#### Option A: Using Environment Variables (Simple)
 ```yaml
 version: "3.9"
 
@@ -130,14 +130,116 @@ networks:
   private_network:
 ```
 
-### ▶️ Step 3: Start Container
+#### Option B: Using Docker Secrets (Recommended for Production)
 
+Docker Secrets provide enhanced security by keeping sensitive data in separate files that are securely mounted into the container.
+
+**Create secret files:**
+```bash
+# Create secrets directory
+mkdir -p secrets
+
+# Store your credentials securely
+echo "your_cloudflare_api_token_here" > secrets/cf_api_token
+echo "your_cloudflare_zone_id_here" > secrets/cf_zone_id
+
+# Secure the files
+chmod 600 secrets/*
+```
+
+**docker-compose.yml with secrets:**
+```yaml
+version: "3.9"
+
+services:
+  cf-bypass:
+    image: harlekesp/cffootballbypass:latest
+    container_name: cf-football-bypass
+    restart: always
+    environment:
+      CF_API_TOKEN_FILE: /run/secrets/cf_api_token
+      CF_ZONE_ID_FILE: /run/secrets/cf_zone_id
+      DOMAINS: '[{"name":"example.com","record":"@","type":"A"}]'
+      INTERVAL_SECONDS: 300
+    secrets:
+      - cf_api_token
+      - cf_zone_id
+    volumes:
+      - cflogs:/app/logs
+    networks:
+      - private_network
+
+secrets:
+  cf_api_token:
+    file: ./cf_api_token
+  cf_zone_id:
+    file: ./cf_zone_id
+
+volumes:
+  cflogs:
+
+networks:
+  private_network:
+```
+
+> **🔒 Security Note:** When using Docker Secrets with `_FILE` suffix:
+> - The container reads credentials from files instead of environment variables
+> - Credentials are stored encrypted in Docker's internal database
+> - Only accessible to authorized containers
+> - Never exposed in logs or `docker inspect` output
+> - Mounted as read-only files in `/run/secrets/`
+> - More compatible with Docker Swarm and orchestration tools
+
+#### Option C: Using `.env` File with Secrets (Hybrid Approach)
+
+You can also use an `.env` file to specify secret file paths:
+
+**Create `.env` file:**
+```bash
+CF_API_TOKEN_FILE=/run/secrets/cf_api_token
+CF_ZONE_ID_FILE=/run/secrets/cf_zone_id
+DOMAINS=[{"name":"example.com","record":"@","type":"A"}]
+INTERVAL_SECONDS=300
+```
+
+**docker-compose.yml:**
+```yaml
+version: "3.9"
+
+services:
+  cf-bypass:
+    image: harlekesp/cffootballbypass:latest
+    container_name: cf-football-bypass
+    restart: always
+    env_file:
+      - .env
+    secrets:
+      - cf_api_token
+      - cf_zone_id
+    volumes:
+      - cflogs:/app/logs
+    networks:
+      - private_network
+
+secrets:
+  cf_api_token:
+    file: ./secrets/cf_api_token
+  cf_zone_id:
+    file: ./secrets/cf_zone_id
+
+volumes:
+  cflogs:
+
+networks:
+  private_network:
+```
+
+### ▶️ Step 3: Start Container
 ```bash
 docker-compose up -d
 ```
 
 ### 📋 Step 4: Check Logs
-
 ```bash
 docker logs -f cf-football-bypass
 ```
@@ -150,13 +252,48 @@ docker logs -f cf-football-bypass
 
 | Variable | Description | Required | Default | Example |
 |----------|-------------|:--------:|---------|---------|
-| `CF_API_TOKEN` | Cloudflare API Token | ✅ | - | `aBc123...` |
-| `CF_ZONE_ID` | Cloudflare Zone ID | ✅ | - | `a1b2c3...` |
+| `CF_API_TOKEN` | Cloudflare API Token | ✅* | - | `aBc123...` |
+| `CF_API_TOKEN_FILE` | Path to API Token file | ✅* | - | `/run/secrets/cf_api_token` |
+| `CF_ZONE_ID` | Cloudflare Zone ID | ✅* | - | `a1b2c3...` |
+| `CF_ZONE_ID_FILE` | Path to Zone ID file | ✅* | - | `/run/secrets/cf_zone_id` |
 | `DOMAINS` | JSON array of domains | ✅ | `[]` | See below ↓ |
 | `INTERVAL_SECONDS` | Check interval (seconds) | ❌ | `300` | `180` |
 
-### 📋 DOMAINS Format
+**\* You must provide EITHER the direct variable OR the `_FILE` version, not both**
 
+### 🔐 Credentials Configuration Methods
+
+The container supports **three methods** for providing credentials (in order of priority):
+
+1. **`_FILE` Environment Variables** (Highest Priority)
+   - `CF_API_TOKEN_FILE=/run/secrets/cf_api_token`
+   - `CF_ZONE_ID_FILE=/run/secrets/cf_zone_id`
+   - Container reads from the specified file path
+   - **Recommended for production and Docker Swarm**
+
+2. **Docker Secrets** (Auto-detection)
+   - Automatically checks `/run/secrets/cf_api_token` and `/run/secrets/cf_zone_id`
+   - Works without explicit `_FILE` variables if secrets are mounted
+   - Compatible with Docker Compose and Swarm
+
+3. **Direct Environment Variables** (Lowest Priority)
+   - `CF_API_TOKEN=your_token_here`
+   - `CF_ZONE_ID=your_zone_id_here`
+   - Simple but less secure
+
+**Priority Logic:**
+```
+IF CF_API_TOKEN_FILE is set
+  → Read from file path
+ELSE IF /run/secrets/cf_api_token exists
+  → Read from Docker secret
+ELSE IF CF_API_TOKEN is set
+  → Use environment variable
+ELSE
+  → Error: No credentials found
+```
+
+### 📋 DOMAINS Format
 ```json
 [
   {
@@ -188,7 +325,6 @@ docker logs -f cf-football-bypass
 ---
 
 ## 🔍 How It Works
-
 ```
 ┌─────────────┐
 │    START    │
@@ -261,7 +397,7 @@ docker logs -f cf-football-bypass
 |---------|----------------|
 | **Immutable feed** | Hardcoded to hayahora.futbol only |
 | **No external code** | Doesn't execute third-party scripts |
-| **Docker Secrets ready** | Supports secrets, not just env vars |
+| **Docker Secrets support** | Supports both `_FILE` variables and auto-detection |
 | **Non-root user** | Runs as UID/GID 1000 (appuser) |
 | **Minimal privileges** | Only DNS permissions on Cloudflare |
 | **Healthcheck** | Verifies connectivity every 30s |
@@ -277,7 +413,6 @@ All known CVEs are patched or mitigated. See [docs/CVE-MITIGATION.md](docs/CVE-M
 ---
 
 ## 📊 Example Logs
-
 ```log
 ╔════════════════════════════════════════════════════════╗
 ║  ⚽ CF Football Bypass v2.0                            ║
@@ -285,6 +420,7 @@ All known CVEs are patched or mitigated. See [docs/CVE-MITIGATION.md](docs/CVE-M
 ╚════════════════════════════════════════════════════════╝
 
 [2025-01-15 18:30:00] ✅ SUCCESS  │ Configuration loaded successfully
+[2025-01-15 18:30:00] 🔒 SECURITY │ Using file-based credentials (CF_API_TOKEN_FILE)
 [2025-01-15 18:30:00] ℹ️  INFO     │ Check interval: 300s
 [2025-01-15 18:30:00] ℹ️  INFO     │ Feed URL: https://hayahora.futbol/estado/data.json
 
@@ -326,7 +462,6 @@ All known CVEs are patched or mitigated. See [docs/CVE-MITIGATION.md](docs/CVE-M
 ---
 
 ## 🔧 Useful Commands
-
 ```bash
 # View real-time logs
 docker logs -f cf-football-bypass
@@ -348,6 +483,12 @@ docker stats cf-football-bypass
 
 # Access shell (debug)
 docker exec -it cf-football-bypass sh
+
+# Verify secrets are mounted
+docker exec cf-football-bypass ls -la /run/secrets/
+
+# Check which credential method is being used
+docker exec cf-football-bypass env | grep CF_
 ```
 
 ---
@@ -365,6 +506,28 @@ Some Spanish ISPs block IP ranges during football broadcasts. This container:
 2. Temporarily disables the proxy
 3. Your server responds **directly** (bypassing the block)
 4. When the match ends, it re-enables Cloudflare
+
+</details>
+
+<details>
+<summary><strong>🔐 What's the difference between <code>_FILE</code> variables and direct secrets?</strong></summary>
+
+<br>
+
+**Three methods available:**
+
+| Method | Configuration | When to use |
+|--------|---------------|-------------|
+| **`_FILE` variables** | `CF_API_TOKEN_FILE=/run/secrets/cf_api_token` | Docker Swarm, Kubernetes, explicit control |
+| **Auto-detected secrets** | Secrets mounted at `/run/secrets/` | Docker Compose with secrets (simpler) |
+| **Environment variables** | `CF_API_TOKEN=abc123` | Development, testing, quick setup |
+
+**Recommendations:**
+- 🏢 **Production/Swarm**: Use `_FILE` variables for explicit control
+- 🐳 **Docker Compose**: Auto-detected secrets (no `_FILE` needed)
+- 💻 **Development**: Direct environment variables
+
+All methods are secure when using Docker secrets. The `_FILE` suffix is a common convention in Docker applications (like MySQL, PostgreSQL) for file-based configuration.
 
 </details>
 
@@ -404,7 +567,6 @@ If both are blocked, you'll need:
 <br>
 
 **Absolutely!** Add as many as you need:
-
 ```json
 [
   {"name":"example.com","record":"@","type":"A"},
@@ -449,6 +611,12 @@ curl https://hayahora.futbol/estado/data.json | jq
 docker inspect --format='{{json .State.Health}}' cf-football-bypass | jq
 ```
 
+**Option 4: Verify credential loading**
+```bash
+# Check which method is being used
+docker logs cf-football-bypass | grep "SECURITY"
+```
+
 </details>
 
 <details>
@@ -471,17 +639,37 @@ You can adjust with `INTERVAL_SECONDS`:
 ## 🐛 Troubleshooting
 
 ### Container won't start
-
 ```bash
 # Check error logs
 docker logs cf-football-bypass
 
-# Verify credentials
+# Verify environment variables
 docker exec cf-football-bypass env | grep CF_
+
+# Verify secrets are mounted correctly
+docker exec cf-football-bypass ls -la /run/secrets/
+
+# Test reading secret files
+docker exec cf-football-bypass cat /run/secrets/cf_api_token
+```
+
+### Credentials not loading
+```bash
+# Priority check: Which method is the container trying to use?
+docker logs cf-football-bypass | head -20
+
+# If using _FILE: Verify file paths
+docker exec cf-football-bypass sh -c 'echo $CF_API_TOKEN_FILE'
+docker exec cf-football-bypass test -f /run/secrets/cf_api_token && echo "File exists" || echo "File missing"
+
+# If using direct secrets: Check auto-detection
+docker exec cf-football-bypass ls -la /run/secrets/
+
+# If using env vars: Check they're set
+docker exec cf-football-bypass sh -c 'echo ${CF_API_TOKEN:0:10}...'
 ```
 
 ### Not detecting blocks
-
 ```bash
 # Verify your IPs are in the feed
 curl -s https://hayahora.futbol/estado/data.json | jq '.data[] | select(.ip=="YOUR_IP")'
@@ -491,10 +679,22 @@ docker exec cf-football-bypass dig +short example.com @1.1.1.1
 ```
 
 ### Healthcheck failing
-
 ```bash
 # Verify connectivity
 docker exec cf-football-bypass curl -v https://hayahora.futbol/estado/data.json
+```
+
+### Secrets permission issues
+```bash
+# Check file permissions (should be readable)
+ls -la secrets/
+
+# Verify secret content (be careful, will display token!)
+cat secrets/cf_api_token
+
+# Inside container
+docker exec cf-football-bypass ls -la /run/secrets/
+docker exec cf-football-bypass cat /run/secrets/cf_api_token
 ```
 
 ---
@@ -522,7 +722,6 @@ Contributions are welcome! You can help by:
 ## 📜 License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
 ```
 MIT License - Copyright (c) 2025 harlekesp
 ```
@@ -551,10 +750,9 @@ Users are responsible for compliance with all applicable laws in their jurisdict
 
 **Made with ⚽ and ☕ in Spain**
 
-[![GitHub](https://img.shields.io/badge/GitHub-harlekesp-181717?style=flat-square&logo=github)](https://github.com/harlekesp)
+[![GitHub](https://img.shields.io/badge/GitHub-harlekesp-181717?style=flat-square&logo=github)](https://github.com/JoseManuelPedraja/cffootballbypass-docker)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-harlekesp-0db7ed?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/harlekesp/cffootballbypass)
 
 [⬆ Back to top](#-cf-football-bypass)
-
 
 </div>
